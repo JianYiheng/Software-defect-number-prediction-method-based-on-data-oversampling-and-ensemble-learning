@@ -197,7 +197,7 @@ def smote(modules_input, ratio=1):
     输出：预测结果的FPA值
 ***************************************************************
 '''
-def Deposite(dataset,n,m):
+def Deposite_smote(dataset,n,m):
     rare_modules, rare_char, rare_bug = seperateData(dataset, -1)
     normal_modules, normal_char = seperateData(dataset, 1)
     rare_test_len = math.ceil(rare_modules.shape[0]/10)
@@ -245,18 +245,69 @@ def Deposite(dataset,n,m):
     dataset_new['bug_new'] = temp
     return dataset_new
 
-# def Judge(dataset):
+def Deposite_normal(dataset,n,m):
+    rare_modules, rare_char, rare_bug = seperateData(dataset, -1)
+    normal_modules, normal_char = seperateData(dataset, 1)
+    rare_test_len = math.ceil(rare_modules.shape[0]/10)
+    normal_test_len = math.ceil(normal_char.shape[0]/10)
+    temp = np.array([])
+    
+    dataset_temp = []
+    # 十折交叉验证，循环十次
+    for i in range(10):
+        rareX0 = i*rare_test_len
+        rareX1 = (i+1)*rare_test_len
+        normalX0 = i*normal_test_len
+        normalX1= (i+1)*normal_test_len
+        
+        if rareX1 >=rare_modules.shape[0]:
+            rareX1 = rare_modules.shape[0]
+        if normalX1 >= normal_modules.shape[0]:
+            normalX1 = normal_modules.shape[0]
+        # 测试集， 取1/10的数据集
+        testMod = pd.concat([rare_modules.iloc[rareX0:rareX1], normal_modules.iloc[normalX0:normalX1]],axis=0)
+        # 训练集，取剩下的数据集
+        trainMod = pd.concat([rare_modules.drop(rare_modules.index[list(range(rareX0,rareX1))]),normal_modules.drop(normal_modules.index[list(range(normalX0,normalX1))])],axis=0)
+        dataset_temp.append(testMod)
+        # 用以储存测试集预测Bug数据集
+        testPre_sum = np.zeros(len(testMod))
 
+        flag = 0
+        # 每一折进行20次过采样
+        for j in range(n):
+            # 提取 特征值 和 bug值
+            trainChar, trainBug = seperateData(trainMod, 0)
+            testChar, testBug = seperateData(testMod, 0)
 
-x = get_data()[1][0]
-# y = smote(x)
-y = x
-y.index = list(np.linspace(0,y.shape[0]-1,y.shape[0]))
-z = Deposite(y,5,0)
-z_values = z.bug.values
-z_values = list({}.fromkeys(z_values).keys())
-for i in z_values:
-    temp = z[z.bug == i]
-    diff = np.abs(temp.bug - temp.bug_new)
-    output = diff.sum()
-    print(output)
+            testPre = Regression(trainChar, trainBug, testChar,m)
+            flag += 1
+            testPre_sum += testPre
+        # 对预测结果求平均
+        testPre_sum /= flag
+        testPre_sum = np.round(testPre_sum)
+        temp = np.hstack((temp, testPre_sum))
+    dataset_new = pd.concat(dataset_temp,axis=0)
+    dataset_new['bug_new'] = temp
+    return dataset_new
+
+x = get_data()[1][1]
+z0 = Deposite_smote(x,5,0)
+z1 = Deposite_normal(x,5,0)
+result = []
+for z in [z0, z1]:
+    z_values = z.bug.values
+    z_values = list({}.fromkeys(z_values).keys())
+    z_values.sort()
+    print(z_values)
+    subresult = []
+    for i in z_values:
+        temp = z[z.bug == i]
+        # print(temp.bug, temp.bug_new)
+        diff = np.abs(temp.bug - temp.bug_new)
+        output = np.power(diff, 2).sum()
+        print(output)
+        subresult.append(output)
+    subresult = np.array(subresult)
+    result.append(subresult)
+rate = (result[1] - result[0])/result[1]
+print(rate)
