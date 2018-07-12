@@ -249,9 +249,7 @@ def Deposite(dataset,n,m):
 
 
 x = get_data()[1][0]
-print(x)
-
-y = smote(x)
+# y = smote(x)
 y = x
 y.index = list(np.linspace(0,y.shape[0]-1,y.shape[0]))
 z = Deposite(y,5,0)
