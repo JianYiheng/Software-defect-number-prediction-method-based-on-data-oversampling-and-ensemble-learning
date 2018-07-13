@@ -105,24 +105,6 @@ def Regression(trainChar,trainBug, testChar, choose=0):
         bayes = BayesianRidge().fit(trainChar,trainBug)
         return bayes.predict(testChar).astype(int)
 
-
-'''
-***************************************************************
-    功能：FPA计算函数
-    输入：testBug-模块Bug实际值，testPre-模块Bug预测值
-    输出：FPA值
-***************************************************************
-'''
-def FPA(testBug, testPre):
-    K = len(testBug)
-    N = np.sum(testBug)
-    
-    sort_axis = np.argsort(testPre)
-    testBug=np.array(testBug)
-    testBug = testBug[sort_axis]
-    P = sum(np.sum(testBug[m:])/N for m in range(K+1))/K
-    return P
-
 '''
 ***************************************************************
     功能：SMOTE过采样函数
@@ -194,7 +176,7 @@ def smote(modules_input, ratio=1):
 ***************************************************************
     功能：数据过采样、回归预测并集成学习函数
     输入；dataset-软件模块，n-过采样次数，m-回归类型(参见Regression注释)
-    输出：预测结果的FPA值
+    输出：经过过采样和预测后的数据集
 ***************************************************************
 '''
 def Deposite_smote(dataset,n,m):
@@ -225,7 +207,7 @@ def Deposite_smote(dataset,n,m):
         testPre_sum = np.zeros(len(testMod))
 
         flag = 0
-        # 每一折进行20次过采样
+        # 每一折进行n次过采样
         for j in range(n):
             # 对训练集进行过采样
             trainMod_new = smote(trainMod,1)
@@ -245,7 +227,14 @@ def Deposite_smote(dataset,n,m):
     dataset_new['bug_new'] = temp
     return dataset_new
 
-def Deposite_normal(dataset,n,m):
+'''
+***************************************************************
+    功能：数据不进行过采样、回归预测并集成学习函数
+    输入；dataset-软件模块，m-回归类型(参见Regression注释)
+    输出：经过过采样和预测后的数据集
+***************************************************************
+'''
+def Deposite_normal(dataset,m):
     rare_modules, rare_char, rare_bug = seperateData(dataset, -1)
     normal_modules, normal_char = seperateData(dataset, 1)
     rare_test_len = math.ceil(rare_modules.shape[0]/10)
@@ -272,42 +261,86 @@ def Deposite_normal(dataset,n,m):
         # 用以储存测试集预测Bug数据集
         testPre_sum = np.zeros(len(testMod))
 
-        flag = 0
-        # 每一折进行20次过采样
-        for j in range(n):
-            # 提取 特征值 和 bug值
-            trainChar, trainBug = seperateData(trainMod, 0)
-            testChar, testBug = seperateData(testMod, 0)
+        # 提取 特征值 和 bug值
+        trainChar, trainBug = seperateData(trainMod, 0)
+        testChar, testBug = seperateData(testMod, 0)
 
-            testPre = Regression(trainChar, trainBug, testChar,m)
-            flag += 1
-            testPre_sum += testPre
-        # 对预测结果求平均
-        testPre_sum /= flag
-        testPre_sum = np.round(testPre_sum)
+        testPre = Regression(trainChar, trainBug, testChar,m)
+
+        testPre_sum = np.round(testPre)
         temp = np.hstack((temp, testPre_sum))
     dataset_new = pd.concat(dataset_temp,axis=0)
     dataset_new['bug_new'] = temp
     return dataset_new
 
-x = get_data()[1][1]
-z0 = Deposite_smote(x,5,0)
-z1 = Deposite_normal(x,5,0)
-result = []
-for z in [z0, z1]:
-    z_values = z.bug.values
-    z_values = list({}.fromkeys(z_values).keys())
-    z_values.sort()
-    print(z_values)
-    subresult = []
-    for i in z_values:
-        temp = z[z.bug == i]
-        # print(temp.bug, temp.bug_new)
+
+'''
+***************************************************************
+    功能：FPA评价函数
+    输入：dataset-经过预测后的数据集，在函数中数据处理得到testBug和testPre
+         testBug-模块Bug实际值，testPre-模块Bug预测值
+    输出：FPA值
+***************************************************************
+'''
+def FPA_Judge(dataset):
+    testBug = dataset['bug']
+    testPre = dataset['bug_new']
+    K = len(testBug)
+    N = np.sum(testBug)
+    
+    sort_axis = np.argsort(testPre)
+    testBug=np.array(testBug)
+    testBug = testBug[sort_axis]
+    P = sum(np.sum(testBug[m:])/N for m in range(K+1))/K
+    return P
+
+'''
+***************************************************************
+    功能：AAE评价函数
+    输入：dataset-经过预测后的数据集
+    输出：针对各个缺陷数目的模块类的提升率
+***************************************************************
+'''
+def AAE_Judge(dataset):
+    dataset_values = dataset.bug.values
+    dataset_values = list({}.fromkeys(dataset_values).keys())
+    dataset_values.sort()
+    results = []
+    subresults = []
+    for i in dataset_values:
+        temp = dataset[dataset.bug == i]
         diff = np.abs(temp.bug - temp.bug_new)
         output = np.power(diff, 2).sum()
-        print(output)
-        subresult.append(output)
-    subresult = np.array(subresult)
-    result.append(subresult)
-rate = (result[1] - result[0])/result[1]
-print(rate)
+        subresults.append(output)
+    results = [dataset_values, subresults]
+    return results
+
+'''
+***************************************************************
+    功能：顶层函数，综合使用以上各种函数完成所需功能
+    输入：None
+    输出：所需要的结果
+***************************************************************
+'''
+def Top():
+    # 获得数据
+    x = get_data()[1][2]
+    # 进行 含smote的数据处理(默认使用决策树回归方法)
+    z0 = Deposite_smote(x,5,0)
+    print('Result of method with smote')
+    print('Judge by FPA:')
+    print(FPA_Judge(z0))
+    print('Judge by AAE:')
+    print(AAE_Judge(z0))
+
+    # 进行 不含smote的数据处理
+    z1 = Deposite_normal(x,0)
+    print('Result of method without smote')
+    print('Judge by FPA')
+    print(FPA_Judge(z1))
+    print('Judge by AAE')
+    print(AAE_Judge(z1))
+    
+
+if __name__=="__main__":
+    Top()
