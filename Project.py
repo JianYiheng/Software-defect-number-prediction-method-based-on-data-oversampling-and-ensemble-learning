@@ -45,6 +45,7 @@ def get_data():
                 data = data.iloc[:,5:]
                 output.append(data)
                 name0.append(j)
+                print(j)
     return name0,output
 
 '''
@@ -329,7 +330,7 @@ def SelectCharacter(dataset):
 '''
 def Top():
     # 获得数据
-    x = get_data()[1][3]
+    x = get_data()[1][7]
     # 进行 含smote的数据处理(默认使用决策树回归方法)
     z0 = Deposite_smote(x,5,0)
     fpa0 = FPA_Judge(z0)
