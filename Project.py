@@ -317,6 +317,21 @@ def AAE_Judge(dataset):
 
 '''
 ***************************************************************
+    功能：特征选择函数
+    输入：dataset-原始数据集
+    输出：经过特征筛选后的数据集
+***************************************************************
+'''
+def SelectCharacter(dataset):
+    char, bug = seperateData(dataset, 0)
+    clf = ExtraTreesClassifier()
+    clf = clf.fit(char, bug)
+    model = SelectFromModel(clf, prefit = True)
+    char_new = model.transform(char)
+    return pd.concat([pd.DataFrame(char_new), bug], axis=1)
+
+'''
+***************************************************************
     功能：顶层函数，综合使用以上各种函数完成所需功能
     输入：None
     输出：所需要的结果
