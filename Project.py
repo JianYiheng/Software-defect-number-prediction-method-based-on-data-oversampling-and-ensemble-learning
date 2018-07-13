@@ -9,18 +9,8 @@ from sklearn import linear_model
 from sklearn.linear_model import BayesianRidge
 from sklearn.tree import DecisionTreeRegressor
 from sklearn.neighbors import NearestNeighbors
-
-# path = os.getcwd()
-# name = os.listdir(path+'\\Data')
-# for i in name:
-#     subpath = path +'\\Data' + '\\' + i
-#     subname = os.listdir(subpath)
-#     for j in subname:
-#         finalpath = subpath + '\\' + j
-#         x = pd.read_csv(finalpath,engine='python').dropna(how='all')
-#         newpath = path+'\\data'+'\\'+i+'\\'+j
-#         print(newpath)
-#         x.to_csv(newpath)
+from sklearn.ensemble import ExtraTreesClassifier
+from sklearn.feature_selection import SelectFromModel
 
 '''
 ***************************************************************
@@ -305,19 +295,18 @@ def AAE_Judge(dataset):
     dataset_values = dataset.bug.values
     dataset_values = list({}.fromkeys(dataset_values).keys())
     dataset_values.sort()
-    results = []
     subresults = []
     for i in dataset_values:
         temp = dataset[dataset.bug == i]
         diff = np.abs(temp.bug - temp.bug_new)
         output = np.power(diff, 2).sum()
         subresults.append(output)
-    results = [dataset_values, subresults]
+    results = np.array(subresults)
     return results
 
 '''
 ***************************************************************
-    功能：特征选择函数
+    功能：特征选择函数，使用决策树作为筛选方法
     输入：dataset-原始数据集
     输出：经过特征筛选后的数据集
 ***************************************************************
@@ -333,28 +322,55 @@ def SelectCharacter(dataset):
 '''
 ***************************************************************
     功能：顶层函数，综合使用以上各种函数完成所需功能
+        目前实现的功能有：比较不经过筛选的数据中smote作用，比较经过筛选数据中的smote作用
     输入：None
     输出：所需要的结果
 ***************************************************************
 '''
 def Top():
     # 获得数据
-    x = get_data()[1][2]
+    x = get_data()[1][3]
     # 进行 含smote的数据处理(默认使用决策树回归方法)
     z0 = Deposite_smote(x,5,0)
+    fpa0 = FPA_Judge(z0)
+    aae0 = AAE_Judge(z0)
     print('Result of method with smote')
-    print('Judge by FPA:')
-    print(FPA_Judge(z0))
-    print('Judge by AAE:')
-    print(AAE_Judge(z0))
+    print('Judge by FPA:', fpa0)
+    print('Judge by AAE:', aae0)
+    print('\n')
 
     # 进行 不含smote的数据处理
     z1 = Deposite_normal(x,0)
+    fpa1 = FPA_Judge(z1)
+    aae1 = AAE_Judge(z1)
     print('Result of method without smote')
-    print('Judge by FPA')
-    print(FPA_Judge(z1))
-    print('Judge by AAE')
-    print(AAE_Judge(z1))
+    print('Judge by FPA', fpa1)
+    print('Judge by AAE', aae1)
+    results = (aae1-aae0)/aae1
+    print(results, np.mean(results))
+    print('\n')
+
+    # 进行特征筛选后的数据集
+    x = SelectCharacter(x)
+    # 进行 含smote的数据处理(默认使用决策树回归方法)
+    z2 = Deposite_smote(x,5,0)
+    fpa2 = FPA_Judge(z2)
+    aae2 = AAE_Judge(z2)
+    print('Result of method with smote')
+    print('Judge by FPA:', fpa2)
+    print('Judge by AAE:', aae2)
+    print('\n')
+
+    # 进行 不含smote的数据处理
+    z3 = Deposite_normal(x,0)
+    fpa3 = FPA_Judge(z3)
+    aae3 = AAE_Judge(z3)
+    print('Result of method without smote')
+    print('Judge by FPA', fpa3)
+    print('Judge by AAE', aae3)
+    results = (aae3-aae2)/aae3
+    print(results, np.mean(results))
+    print('\n')
     
 
 if __name__=="__main__":
