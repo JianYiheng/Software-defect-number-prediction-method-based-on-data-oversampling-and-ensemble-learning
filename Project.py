@@ -45,7 +45,6 @@ def get_data():
                 data = data.iloc[:,5:]
                 output.append(data)
                 name0.append(j)
-                print(j)
     return name0,output
 
 '''
@@ -106,8 +105,10 @@ def Regression(trainChar,trainBug, testChar, choose=0):
 def smote(modules_input, ratio=1):
     modules, char, bug = seperateData(modules_input, -1)
     normal_modules, normal_char = seperateData(modules_input, 1)
-    
+    print('defect', modules.shape)
+    print('normal', normal_modules.shape)
     n = round((ratio*normal_modules.shape[0]-modules.shape[0])/modules.shape[0])
+    print(n)
     k = 5
     
     if n<=0:
@@ -119,7 +120,7 @@ def smote(modules_input, ratio=1):
     index = neigh.kneighbors(n_neighbors=k, return_distance=False)
     # result结果为narray类型的索引矩阵
     a, b = index.shape
-
+    print(a)
     # 此处的用法详见书P83
     axis0, axis1 = np.ogrid[:a, :b]
     sort_axis = np.zeros(b,dtype=int)
@@ -374,5 +375,5 @@ def Top():
     print('\n')
     
 
-if __name__=="__main__":
-    Top()
+# if __name__=="__main__":
+#     Top()
