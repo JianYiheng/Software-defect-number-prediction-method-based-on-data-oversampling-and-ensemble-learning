@@ -19,7 +19,7 @@ def get_data():
         功能：获取原始模块数据：
         输出：一个二维列表，分别模块列表名称和相应的DataFrame格式表格
         备注：默认数据都在当前文件夹的data文件夹里面，data文件夹下面有ant,
-        jedit,ivy,synapse和xalan五个文件夹，分别储存五种数据的csv文件。
+        jedit,ivy,synapse四个文件夹，分别储存五种数据的csv文件。
 
 
         Menu:
@@ -31,7 +31,7 @@ def get_data():
                     -...
                 -jedit
                 -ivy
-                -....
+                -synapse
     ***************************************************************
     """
     path = os.getcwd()+'\\data'
@@ -39,14 +39,14 @@ def get_data():
     name0 = []
     output = []
     for i in name:
-        if i in ['ant','jedit','ivy','synapse','xalan']:
+        if i in ['ant','jedit','ivy','synapse']:
             sub_path = path+'\\'+i
             for j in os.listdir(sub_path):
                 data = pd.read_csv(sub_path+'\\'+j,engine='python')
                 data = data.iloc[:,5:]
                 output.append(data)
                 name0.append(j)
-    return name0,output
+    return name0, output
 
 
 def seperateData(modules, Type):
@@ -419,10 +419,10 @@ def AAE_Judge(dataset):
     results = np.array(subresults)
     print('|', end='')
     for i in range(len(dataset_values)):
-        print("{:^3.0f}".format(dataset_values[i]),'|', end='')
+        print("{:^5.0f}".format(dataset_values[i]),'|', end='')
     print('\n|', end='')
     for i in range(len(dataset_values)):
-        print("{:^3.2f}".format(subresults[i]),'|', end='')
+        print("{:^5.2f}".format(subresults[i]),'|', end='')
     print('\n')
     return results
 
@@ -452,28 +452,32 @@ def Top(x):
         输出：所需要的结果
     ***************************************************************
     """
-    # # 获得数据
-    # x = get_data()[1][i]
     # 进行 含smote&bagging的数据处理(默认使用决策树回归方法)
     z0 = Deposite_smote_bagging(x, 20, 0)
+    print('Smote&Bagging')
     fpa0 = FPA_Judge(z0)
     aae0 = AAE_Judge(z0)
     # 进行 含smote的数据处理
     z1 = Deposite_bagging(x, 20, 0)
+    print('Smote')
     fpa1 = FPA_Judge(z1)
     aae1 = AAE_Judge(z1)
     # 进行 含bagging的数据处理
+    print('Bagging')
     z2 = Deposite_smote(x, 0)
-    fpa1 = FPA_Judge(z1)
-    aae1 = AAE_Judge(z1)
+    fpa2 = FPA_Judge(z2)
+    aae2 = AAE_Judge(z2)
     # 进行 不含smote|bagging的数据处理
     z3 = Deposite_normal(x, 0)
-    fpa1 = FPA_Judge(z1)
-    aae1 = AAE_Judge(z1)
+    print('Normal')
+    fpa3 = FPA_Judge(z3)
+    aae3 = AAE_Judge(z3)
     results = (aae1-aae0)/aae1
     print('no character selection:')
-    print('FPA improve', (fpa0-fpa1)/fpa0)
-    print('AAE improve', np.mean(results))
+    print('FPA improve:')
+    for i in [fpa0, fpa1, fpa2]:
+        print((i-fpa3)/i)
+    print('\n')
 
 
     """
@@ -505,9 +509,6 @@ def Top(x):
 
 
 if __name__ == "__main__":
-    i = get_data()[1][0]
-    print('ok')
-    Top(i)
-    # results = [FPA_list0, AAE_list0, FPA_list1, AAE_list1]
-    # results = pd.Dataframe(results, columns = ['FPA no select', 'AAE no select', 'FPA select', 'AAE select'])
-    # results.to_csv('results.csv')
+    for (i,j) in zip(*get_data()):
+        print(i)
+        Top(j)
