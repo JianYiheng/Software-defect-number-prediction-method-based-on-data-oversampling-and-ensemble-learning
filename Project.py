@@ -136,7 +136,6 @@ def smote(modules_input, ratio=1):
 
     if 2*rare_modules.shape[0] > normal_modules.shape[0]:
         a = normal_modules.shape[0] - rare_modules.shape[0]
-    print('a:',a)
 
     for i in range(a):
         for j in range(n):
@@ -331,28 +330,31 @@ def SelectCharacter(dataset):
     输出：所需要的结果
 ***************************************************************
 '''
-def Top():
+def Top(i, FPA_list0, AAE_list0, FPA_list1, AAE_list1):
     # 获得数据
-    x = get_data()[1][7]
+    x = get_data()[1][i]
     # 进行 含smote的数据处理(默认使用决策树回归方法)
     z0 = Deposite_smote(x,5,0)
     fpa0 = FPA_Judge(z0)
     aae0 = AAE_Judge(z0)
-    print('Result of method with smote')
-    print('Judge by FPA:', fpa0)
-    print('Judge by AAE:', aae0)
-    print('\n')
+    # print('Result of method with smote')
+    # print('Judge by FPA:', fpa0)
+    # print('Judge by AAE:', aae0)
+    # print('\n')
 
     # 进行 不含smote的数据处理
     z1 = Deposite_normal(x,0)
     fpa1 = FPA_Judge(z1)
     aae1 = AAE_Judge(z1)
-    print('Result of method without smote')
-    print('Judge by FPA', fpa1)
-    print('Judge by AAE', aae1)
+    # print('Result of method without smote')
+    # print('Judge by FPA', fpa1)
+    # print('Judge by AAE', aae1)
     results = (aae1-aae0)/aae1
-    print(results, np.mean(results))
-    print('\n')
+    print('no character selection:')
+    print('FPA improve', (fpa0-fpa1)/fpa0)
+    print('AAE improve', np.mean(results))
+    FPA_list0.append((fpa0-fpa1)/fpa0)
+    AAE_list0.append(np.mean(results))
 
     # 进行特征筛选后的数据集
     x = SelectCharacter(x)
@@ -360,22 +362,32 @@ def Top():
     z2 = Deposite_smote(x,5,0)
     fpa2 = FPA_Judge(z2)
     aae2 = AAE_Judge(z2)
-    print('Result of method with smote')
-    print('Judge by FPA:', fpa2)
-    print('Judge by AAE:', aae2)
-    print('\n')
+    # print('Result of method with smote')
+    # print('Judge by FPA:', fpa2)
+    # print('Judge by AAE:', aae2)
+    # print('\n')
 
     # 进行 不含smote的数据处理
     z3 = Deposite_normal(x,0)
     fpa3 = FPA_Judge(z3)
     aae3 = AAE_Judge(z3)
-    print('Result of method without smote')
-    print('Judge by FPA', fpa3)
-    print('Judge by AAE', aae3)
+    # print('Result of method without smote')
+    # print('Judge by FPA', fpa3)
+    # print('Judge by AAE', aae3)
     results = (aae3-aae2)/aae3
-    print(results, np.mean(results))
-    print('\n')
-    
+    print('character selection:')
+    print('FPA improve', (fpa2-fpa3)/fpa2)
+    print('AAE improve', np.mean(results), '\n')
+    FPA_list1.append((fpa2-fpa3)/fpa2)
+    AAE_list1.append(np.mean(results))
 
-if __name__=="__main__":
-    Top()
+
+if __name__ == "__main__":
+    FPA_list0 = []
+    AAE_list0 = []
+    FPA_list1 = []
+    AAE_list1 = []
+    for i in range(10):
+        print(i)
+        Top(i, FPA_list0, AAE_list0, FPA_list1, AAE_list1)
+    print(FPA_list0, AAE_list0, FPA_list1, AAE_list1)
