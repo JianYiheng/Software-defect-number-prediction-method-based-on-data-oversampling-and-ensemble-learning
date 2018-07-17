@@ -344,7 +344,7 @@ def Top(x, FPA_list0, AAE_list0, FPA_list1, AAE_list1):
     # # 获得数据
     # x = get_data()[1][i]
     # 进行 含smote的数据处理(默认使用决策树回归方法)
-    z0 = Deposite_smote(x, 5, 0)
+    z0 = Deposite_smote(x, 20, 0)
     fpa0 = FPA_Judge(z0)
     aae0 = AAE_Judge(z0)
     # print('Result of method with smote')
@@ -369,7 +369,7 @@ def Top(x, FPA_list0, AAE_list0, FPA_list1, AAE_list1):
     # 进行特征筛选后的数据集
     x = SelectCharacter(x)
     # 进行 含smote的数据处理(默认使用决策树回归方法)
-    z2 = Deposite_smote(x,5,0)
+    z2 = Deposite_smote(x,20,0)
     fpa2 = FPA_Judge(z2)
     aae2 = AAE_Judge(z2)
     # print('Result of method with smote')
@@ -399,3 +399,6 @@ if __name__ == "__main__":
     AAE_list1 = []
     for i in get_data()[1]:
         Top(i, FPA_list0, AAE_list0, FPA_list1, AAE_list1)
+    results = [FPA_list0, AAE_list0, FPA_list1, AAE_list1]
+    results = pd.Dataframe(results, columns = ['FPA no select', 'AAE no select', 'FPA select', 'AAE select'])
+    results.to_csv('results.csv')
