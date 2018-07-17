@@ -73,7 +73,7 @@ def seperateData(modules, Type):
         bug = modules.iloc[:, -1]
         return char, bug
 
-'''
+'''ffa46bf01ba2e58791d167870e7789ee
 ***************************************************************
     功能：回归预测函数
     输入：trainChar-训练集模块特征，trainBug-训练集模块Bug
@@ -81,7 +81,7 @@ def seperateData(modules, Type):
     输出：
         当choose=0时，输出决策树回归预测bug数量序列
         当choose=1时，输出线性回归预测结果bug数量序列
-        当choose=-1时，输出贝叶斯回归预测结果bug数量序列
+        当choose=-1时，输出贝叶斯回归预测结果bug数量序列0f624183536cefbe0060c4dfb24e6566adfef548
 ***************************************************************
 '''
 def Regression(trainChar,trainBug, testChar, choose=0):
@@ -103,24 +103,22 @@ def Regression(trainChar,trainBug, testChar, choose=0):
 ***************************************************************
 '''
 def smote(modules_input, ratio=1):
-    modules, char, bug = seperateData(modules_input, -1)
+    rare_modules, rare_char, rare_bug = seperateData(modules_input, -1)
     normal_modules, normal_char = seperateData(modules_input, 1)
-    print('defect', modules.shape)
-    print('normal', normal_modules.shape)
-    n = round((ratio*normal_modules.shape[0]-modules.shape[0])/modules.shape[0])
-    print(n)
     k = 5
-    
-    if n<=0:
+    if rare_modules.shape[0] > normal_modules.shape[0]:
         return modules_input
+    elif 2*rare_modules.shape[0] > normal_modules.shape[0]:
+        n = 1
+    else:
+        n = round((ratio*normal_modules.shape[0]-rare_modules.shape[0])/rare_modules.shape[0])
     
     # 训练模型，取邻近的k个点（可修改邻近点数）
     neigh = NearestNeighbors(n_neighbors=k, algorithm='ball_tree', n_jobs=-1)
-    neigh.fit(char)
+    neigh.fit(rare_char)
     index = neigh.kneighbors(n_neighbors=k, return_distance=False)
     # result结果为narray类型的索引矩阵
     a, b = index.shape
-    print(a)
     # 此处的用法详见书P83
     axis0, axis1 = np.ogrid[:a, :b]
     sort_axis = np.zeros(b,dtype=int)
@@ -136,6 +134,10 @@ def smote(modules_input, ratio=1):
     flag = 0
     new_list = []
 
+    if 2*rare_modules.shape[0] > normal_modules.shape[0]:
+        a = normal_modules.shape[0] - rare_modules.shape[0]
+    print('a:',a)
+
     for i in range(a):
         for j in range(n):
             
@@ -143,14 +145,14 @@ def smote(modules_input, ratio=1):
 
             # p = index_rand[i][j]
             # 计算新的模块的各项特征
-            new = char.iloc[i]+(char.iloc[p]-char.iloc[i])*np.random.rand()
+            new = rare_char.iloc[i]+(rare_char.iloc[p]-rare_char.iloc[i])*np.random.rand()
             #计算原两个模块与新模块之间的欧氏距离
-            d1 = np.linalg.norm(new-char.iloc[i])
-            d2 = np.linalg.norm(new-char.iloc[p])
+            d1 = np.linalg.norm(new-rare_char.iloc[i])
+            d2 = np.linalg.norm(new-rare_char.iloc[p])
             if d1 == 0 and d2 == 0:
                 break
             # 计算新模块的缺陷个数
-            bug_new = (d2*modules.iloc[i].loc['bug']+d1*modules.iloc[p].loc['bug'])/(d1+d2)
+            bug_new = (d2*rare_modules.iloc[i].loc['bug']+d1*rare_modules.iloc[p].loc['bug'])/(d1+d2)
             bug_new = float(round(bug_new))
             # 将新模块的各项特征和缺陷个数合并
             new['bug'] = bug_new
@@ -158,9 +160,9 @@ def smote(modules_input, ratio=1):
             flag += 1
     # 将缺陷模块数据集和正常模块数据集合并
 
-    modules = pd.concat([modules,pd.concat(new_list,axis=1).T],axis=0)
+    rare_modules = pd.concat([rare_modules,pd.concat(new_list,axis=1).T],axis=0)
     # modules_new的样式分为三部分，最上面时旧的缺陷数据集，中间时新合成的缺陷数据集，下面时正常数据集
-    modules_new = pd.concat([modules, normal_modules], axis=0)
+    modules_new = pd.concat([rare_modules, normal_modules], axis=0)
     # modules_new = modules_new.dropna(axis=0) 
     return modules_new
 
@@ -375,5 +377,5 @@ def Top():
     print('\n')
     
 
-# if __name__=="__main__":
-#     Top()
+if __name__=="__main__":
+    Top()
