@@ -170,7 +170,7 @@ def smote(modules_input, ratio=1):
     return modules_new
 
 
-def Deposite_smote(dataset,n,m):
+def Deposite_smote_bagging(dataset,n,m):
     """
     ***************************************************************
         功能：数据过采样、回归预测并集成学习函数
@@ -226,6 +226,111 @@ def Deposite_smote(dataset,n,m):
     return dataset_new
 
 
+def Deposite_bagging(dataset, n, m):
+    """
+    ***************************************************************
+        功能：数据过采样、回归预测并集成学习函数
+        输入；dataset-软件模块，n-过采样次数，m-回归类型(参见Regression注释)
+        输出：经过过采样和预测后的数据集
+    ***************************************************************
+    """
+    rare_modules, rare_char, rare_bug = seperateData(dataset, -1)
+    normal_modules, normal_char = seperateData(dataset, 1)
+    rare_test_len = math.ceil(rare_modules.shape[0] / 10)
+    normal_test_len = math.ceil(normal_char.shape[0] / 10)
+    temp = np.array([])
+
+    dataset_temp = []
+    # 十折交叉验证，循环十次
+    for i in range(10):
+        rareX0 = i * rare_test_len
+        rareX1 = (i + 1) * rare_test_len
+        normalX0 = i * normal_test_len
+        normalX1 = (i + 1) * normal_test_len
+
+        if rareX1 >= rare_modules.shape[0]:
+            rareX1 = rare_modules.shape[0]
+        if normalX1 >= normal_modules.shape[0]:
+            normalX1 = normal_modules.shape[0]
+        # 测试集， 取1/10的数据集
+        testMod = pd.concat([rare_modules.iloc[rareX0:rareX1], normal_modules.iloc[normalX0:normalX1]], axis=0)
+        # 训练集，取剩下的数据集
+        trainMod = pd.concat([rare_modules.drop(rare_modules.index[list(range(rareX0, rareX1))]),
+                              normal_modules.drop(normal_modules.index[list(range(normalX0, normalX1))])], axis=0)
+        dataset_temp.append(testMod)
+        # 用以储存测试集预测Bug数据集
+        testPre_sum = np.zeros(len(testMod))
+
+        flag = 0
+        # 每一折进行n次过采样
+        for j in range(n):
+            # 提取 特征值 和 bug值
+            trainChar, trainBug = seperateData(trainMod, 0)
+            testChar, testBug = seperateData(testMod, 0)
+
+            testPre = Regression(trainChar, trainBug, testChar, m)
+            flag += 1
+            testPre_sum += testPre
+        # 对预测结果求平均
+        testPre_sum /= flag
+        testPre_sum = np.round(testPre_sum)
+        temp = np.hstack((temp, testPre_sum))
+    dataset_new = pd.concat(dataset_temp, axis=0)
+    dataset_new['bug_new'] = temp
+    return dataset_new
+
+
+def Deposite_smote(dataset, m):
+    """
+    ***************************************************************
+        功能：数据过采样、回归预测并集成学习函数
+        输入；dataset-软件模块，n-过采样次数，m-回归类型(参见Regression注释)
+        输出：经过过采样和预测后的数据集
+    ***************************************************************
+    """
+    rare_modules, rare_char, rare_bug = seperateData(dataset, -1)
+    normal_modules, normal_char = seperateData(dataset, 1)
+    rare_test_len = math.ceil(rare_modules.shape[0] / 10)
+    normal_test_len = math.ceil(normal_char.shape[0] / 10)
+    temp = np.array([])
+
+    dataset_temp = []
+    # 十折交叉验证，循环十次
+    for i in range(10):
+        rareX0 = i * rare_test_len
+        rareX1 = (i + 1) * rare_test_len
+        normalX0 = i * normal_test_len
+        normalX1 = (i + 1) * normal_test_len
+
+        if rareX1 >= rare_modules.shape[0]:
+            rareX1 = rare_modules.shape[0]
+        if normalX1 >= normal_modules.shape[0]:
+            normalX1 = normal_modules.shape[0]
+        # 测试集， 取1/10的数据集
+        testMod = pd.concat([rare_modules.iloc[rareX0:rareX1], normal_modules.iloc[normalX0:normalX1]], axis=0)
+        # 训练集，取剩下的数据集
+        trainMod = pd.concat([rare_modules.drop(rare_modules.index[list(range(rareX0, rareX1))]),
+                              normal_modules.drop(normal_modules.index[list(range(normalX0, normalX1))])], axis=0)
+        dataset_temp.append(testMod)
+        # 用以储存测试集预测Bug数据集
+        testPre_sum = np.zeros(len(testMod))
+
+        flag = 0
+        # 每一折进行n次过采样
+        # 对训练集进行过采样
+        trainMod_new = smote(trainMod, 1)
+        trainMod_new = trainMod_new.dropna(axis=0)
+        # 提取 特征值 和 bug值
+        trainChar, trainBug = seperateData(trainMod_new, 0)
+        testChar, testBug = seperateData(testMod, 0)
+
+        testPre = Regression(trainChar, trainBug, testChar, m)
+        testPre_sum = np.round(testPre)
+        temp = np.hstack((temp, testPre_sum))
+    dataset_new = pd.concat(dataset_temp, axis=0)
+    dataset_new['bug_new'] = temp
+    return dataset_new
+
 def Deposite_normal(dataset, m):
     """
     ***************************************************************
@@ -273,7 +378,6 @@ def Deposite_normal(dataset, m):
     return dataset_new
 
 
-
 def FPA_Judge(dataset):
     """
     ***************************************************************
@@ -310,9 +414,16 @@ def AAE_Judge(dataset):
     for i in dataset_values:
         temp = dataset[dataset.bug == i]
         diff = np.abs(temp.bug - temp.bug_new)
-        output = np.power(diff, 2).sum()
+        output = diff.sum()/temp.shape[0]
         subresults.append(output)
     results = np.array(subresults)
+    print('|', end='')
+    for i in range(len(dataset_values)):
+        print("{:^3.0f}".format(dataset_values[i]),'|', end='')
+    print('\n|', end='')
+    for i in range(len(dataset_values)):
+        print("{:^3.2f}".format(subresults[i]),'|', end='')
+    print('\n')
     return results
 
 
@@ -332,7 +443,7 @@ def SelectCharacter(dataset):
     return pd.concat([pd.DataFrame(char_new), bug], axis=1)
 
 
-def Top(x, FPA_list0, AAE_list0, FPA_list1, AAE_list1):
+def Top(x):
     """
     ***************************************************************
         功能：顶层函数，综合使用以上各种函数完成所需功能
@@ -343,29 +454,29 @@ def Top(x, FPA_list0, AAE_list0, FPA_list1, AAE_list1):
     """
     # # 获得数据
     # x = get_data()[1][i]
-    # 进行 含smote的数据处理(默认使用决策树回归方法)
-    z0 = Deposite_smote(x, 20, 0)
+    # 进行 含smote&bagging的数据处理(默认使用决策树回归方法)
+    z0 = Deposite_smote_bagging(x, 20, 0)
     fpa0 = FPA_Judge(z0)
     aae0 = AAE_Judge(z0)
-    # print('Result of method with smote')
-    # print('Judge by FPA:', fpa0)
-    # print('Judge by AAE:', aae0)
-    # print('\n')
-
-    # 进行 不含smote的数据处理
-    z1 = Deposite_normal(x,0)
+    # 进行 含smote的数据处理
+    z1 = Deposite_bagging(x, 20, 0)
     fpa1 = FPA_Judge(z1)
     aae1 = AAE_Judge(z1)
-    # print('Result of method without smote')
-    # print('Judge by FPA', fpa1)
-    # print('Judge by AAE', aae1)
+    # 进行 含bagging的数据处理
+    z2 = Deposite_smote(x, 0)
+    fpa1 = FPA_Judge(z1)
+    aae1 = AAE_Judge(z1)
+    # 进行 不含smote|bagging的数据处理
+    z3 = Deposite_normal(x, 0)
+    fpa1 = FPA_Judge(z1)
+    aae1 = AAE_Judge(z1)
     results = (aae1-aae0)/aae1
     print('no character selection:')
     print('FPA improve', (fpa0-fpa1)/fpa0)
     print('AAE improve', np.mean(results))
-    FPA_list0.append((fpa0-fpa1)/fpa0)
-    AAE_list0.append(np.mean(results))
 
+
+    """
     # 进行特征筛选后的数据集
     x = SelectCharacter(x)
     # 进行 含smote的数据处理(默认使用决策树回归方法)
@@ -390,15 +501,13 @@ def Top(x, FPA_list0, AAE_list0, FPA_list1, AAE_list1):
     print('AAE improve', np.mean(results), '\n')
     FPA_list1.append((fpa2-fpa3)/fpa2)
     AAE_list1.append(np.mean(results))
+    """
 
 
 if __name__ == "__main__":
-    FPA_list0 = []
-    AAE_list0 = []
-    FPA_list1 = []
-    AAE_list1 = []
-    for i in get_data()[1]:
-        Top(i, FPA_list0, AAE_list0, FPA_list1, AAE_list1)
-    results = [FPA_list0, AAE_list0, FPA_list1, AAE_list1]
-    results = pd.Dataframe(results, columns = ['FPA no select', 'AAE no select', 'FPA select', 'AAE select'])
-    results.to_csv('results.csv')
+    i = get_data()[1][0]
+    print('ok')
+    Top(i)
+    # results = [FPA_list0, AAE_list0, FPA_list1, AAE_list1]
+    # results = pd.Dataframe(results, columns = ['FPA no select', 'AAE no select', 'FPA select', 'AAE select'])
+    # results.to_csv('results.csv')
