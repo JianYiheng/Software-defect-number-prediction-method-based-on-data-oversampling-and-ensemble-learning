@@ -12,27 +12,28 @@ from sklearn.neighbors import NearestNeighbors
 from sklearn.ensemble import ExtraTreesClassifier
 from sklearn.feature_selection import SelectFromModel
 
-'''
-***************************************************************
-    功能：获取原始模块数据：
-    输出：一个二维列表，分别模块列表名称和相应的DataFrame格式表格
-    备注：默认数据都在当前文件夹的data文件夹里面，data文件夹下面有ant,
-    jedit,ivy,synapse和xalan五个文件夹，分别储存五种数据的csv文件。
-    
-    
-    Menu:
-        Project.py
-        Data
-            -ant
-                -ant-1.3.csv
-                -ant-1.4.csv
-                -...
-            -jedit
-            -ivy
-            -....
-***************************************************************
-'''
+
 def get_data():
+    """
+    ***************************************************************
+        功能：获取原始模块数据：
+        输出：一个二维列表，分别模块列表名称和相应的DataFrame格式表格
+        备注：默认数据都在当前文件夹的data文件夹里面，data文件夹下面有ant,
+        jedit,ivy,synapse和xalan五个文件夹，分别储存五种数据的csv文件。
+
+
+        Menu:
+            Project.py
+            Data
+                -ant
+                    -ant-1.3.csv
+                    -ant-1.4.csv
+                    -...
+                -jedit
+                -ivy
+                -....
+    ***************************************************************
+    """
     path = os.getcwd()+'\\data'
     name = os.listdir(path)
     name0 = []
@@ -47,17 +48,18 @@ def get_data():
                 name0.append(j)
     return name0,output
 
-'''
-**************************************************************
-    功能：模块数据提取函数        
-    输入：modules-模块，Type-输出类型选择
-    输出：
-        当Type==-1时，输出缺陷模块，缺陷模块的特征和缺陷模块的Bug；
-        当Type==0时，输出出模块的特征和模块的Bug；
-        当Type==1时，输出正常模块，正常模块的特征和正常模块的Bug；
-**************************************************************
-'''
+
 def seperateData(modules, Type):
+    """
+    **************************************************************
+        功能：模块数据提取函数
+        输入：modules-模块，Type-输出类型选择
+        输出：
+            当Type==-1时，输出缺陷模块，缺陷模块的特征和缺陷模块的Bug；
+            当Type==0时，输出出模块的特征和模块的Bug；
+            当Type==1时，输出正常模块，正常模块的特征和正常模块的Bug；
+    **************************************************************
+    """
     if Type==-1:
         rare_modules = modules[modules.bug!=0]
         rare_char = rare_modules.iloc[:, :-1]
@@ -73,18 +75,19 @@ def seperateData(modules, Type):
         bug = modules.iloc[:, -1]
         return char, bug
 
-'''ffa46bf01ba2e58791d167870e7789ee
-***************************************************************
-    功能：回归预测函数
-    输入：trainChar-训练集模块特征，trainBug-训练集模块Bug
-          testChar-测试集模块特征，choose-回归类型选择（缺省为0）
-    输出：
-        当choose=0时，输出决策树回归预测bug数量序列
-        当choose=1时，输出线性回归预测结果bug数量序列
-        当choose=-1时，输出贝叶斯回归预测结果bug数量序列0f624183536cefbe0060c4dfb24e6566adfef548
-***************************************************************
-'''
+
 def Regression(trainChar,trainBug, testChar, choose=0):
+    """
+    ***************************************************************
+        功能：回归预测函数
+        输入：trainChar-训练集模块特征，trainBug-训练集模块Bug
+              testChar-测试集模块特征，choose-回归类型选择（缺省为0）
+        输出：
+            当choose=0时，输出决策树回归预测bug数量序列
+            当choose=1时，输出线性回归预测结果bug数量序列
+            当choose=-1时，输出贝叶斯回归预测结果bug数量序列
+    ***************************************************************
+    """
     if choose == 0:
         dtr = DecisionTreeRegressor().fit(trainChar,trainBug)
         return dtr.predict(testChar).astype(int)
@@ -95,14 +98,15 @@ def Regression(trainChar,trainBug, testChar, choose=0):
         bayes = BayesianRidge().fit(trainChar,trainBug)
         return bayes.predict(testChar).astype(int)
 
-'''
-***************************************************************
-    功能：SMOTE过采样函数
-    输入：modules_input-模块，ratio-期望比值，即最终正常与缺陷模块数量的期望比值（缺省为1）
-    输出：modules_new-采样后的平衡模块数据集
-***************************************************************
-'''
+
 def smote(modules_input, ratio=1):
+    """
+    ***************************************************************
+        功能：SMOTE过采样函数
+        输入：modules_input-模块，ratio-期望比值，即最终正常与缺陷模块数量的期望比值（缺省为1）
+        输出：modules_new-采样后的平衡模块数据集
+    ***************************************************************
+    """
     rare_modules, rare_char, rare_bug = seperateData(modules_input, -1)
     normal_modules, normal_char = seperateData(modules_input, 1)
     k = 5
@@ -165,14 +169,15 @@ def smote(modules_input, ratio=1):
     # modules_new = modules_new.dropna(axis=0) 
     return modules_new
 
-'''
-***************************************************************
-    功能：数据过采样、回归预测并集成学习函数
-    输入；dataset-软件模块，n-过采样次数，m-回归类型(参见Regression注释)
-    输出：经过过采样和预测后的数据集
-***************************************************************
-'''
+
 def Deposite_smote(dataset,n,m):
+    """
+    ***************************************************************
+        功能：数据过采样、回归预测并集成学习函数
+        输入；dataset-软件模块，n-过采样次数，m-回归类型(参见Regression注释)
+        输出：经过过采样和预测后的数据集
+    ***************************************************************
+    """
     rare_modules, rare_char, rare_bug = seperateData(dataset, -1)
     normal_modules, normal_char = seperateData(dataset, 1)
     rare_test_len = math.ceil(rare_modules.shape[0]/10)
@@ -220,14 +225,15 @@ def Deposite_smote(dataset,n,m):
     dataset_new['bug_new'] = temp
     return dataset_new
 
-'''
-***************************************************************
-    功能：数据不进行过采样、回归预测并集成学习函数
-    输入；dataset-软件模块，m-回归类型(参见Regression注释)
-    输出：经过过采样和预测后的数据集
-***************************************************************
-'''
+
 def Deposite_normal(dataset,m):
+    """
+    ***************************************************************
+        功能：数据不进行过采样、回归预测并集成学习函数
+        输入；dataset-软件模块，m-回归类型(参见Regression注释)
+        输出：经过过采样和预测后的数据集
+    ***************************************************************
+    """
     rare_modules, rare_char, rare_bug = seperateData(dataset, -1)
     normal_modules, normal_char = seperateData(dataset, 1)
     rare_test_len = math.ceil(rare_modules.shape[0]/10)
@@ -267,15 +273,16 @@ def Deposite_normal(dataset,m):
     return dataset_new
 
 
-'''
-***************************************************************
-    功能：FPA评价函数
-    输入：dataset-经过预测后的数据集，在函数中数据处理得到testBug和testPre
-         testBug-模块Bug实际值，testPre-模块Bug预测值
-    输出：FPA值
-***************************************************************
-'''
+
 def FPA_Judge(dataset):
+    """
+    ***************************************************************
+        功能：FPA评价函数
+        输入：dataset-经过预测后的数据集，在函数中数据处理得到testBug和testPre
+             testBug-模块Bug实际值，testPre-模块Bug预测值
+        输出：FPA值
+    ***************************************************************
+    """
     testBug = dataset['bug']
     testPre = dataset['bug_new']
     K = len(testBug)
@@ -287,14 +294,15 @@ def FPA_Judge(dataset):
     P = sum(np.sum(testBug[m:])/N for m in range(K+1))/K
     return P
 
-'''
-***************************************************************
-    功能：AAE评价函数
-    输入：dataset-经过预测后的数据集
-    输出：针对各个缺陷数目的模块类的提升率
-***************************************************************
-'''
+
 def AAE_Judge(dataset):
+    """
+    ***************************************************************
+        功能：AAE评价函数
+        输入：dataset-经过预测后的数据集
+        输出：针对各个缺陷数目的模块类的提升率
+    ***************************************************************
+    """
     dataset_values = dataset.bug.values
     dataset_values = list({}.fromkeys(dataset_values).keys())
     dataset_values.sort()
@@ -307,14 +315,15 @@ def AAE_Judge(dataset):
     results = np.array(subresults)
     return results
 
-'''
-***************************************************************
-    功能：特征选择函数，使用决策树作为筛选方法
-    输入：dataset-原始数据集
-    输出：经过特征筛选后的数据集
-***************************************************************
-'''
+
 def SelectCharacter(dataset):
+    """
+    ***************************************************************
+        功能：特征选择函数，使用决策树作为筛选方法
+        输入：dataset-原始数据集
+        输出：经过特征筛选后的数据集
+    ***************************************************************
+    """
     char, bug = seperateData(dataset, 0)
     clf = ExtraTreesClassifier()
     clf = clf.fit(char, bug)
@@ -322,15 +331,16 @@ def SelectCharacter(dataset):
     char_new = model.transform(char)
     return pd.concat([pd.DataFrame(char_new), bug], axis=1)
 
-'''
-***************************************************************
-    功能：顶层函数，综合使用以上各种函数完成所需功能
-        目前实现的功能有：比较不经过筛选的数据中smote作用，比较经过筛选数据中的smote作用
-    输入：None
-    输出：所需要的结果
-***************************************************************
-'''
+
 def Top(i, FPA_list0, AAE_list0, FPA_list1, AAE_list1):
+    """
+    ***************************************************************
+        功能：顶层函数，综合使用以上各种函数完成所需功能
+            目前实现的功能有：比较不经过筛选的数据中smote作用，比较经过筛选数据中的smote作用
+        输入：None
+        输出：所需要的结果
+    ***************************************************************
+    """
     # 获得数据
     x = get_data()[1][i]
     # 进行 含smote的数据处理(默认使用决策树回归方法)
