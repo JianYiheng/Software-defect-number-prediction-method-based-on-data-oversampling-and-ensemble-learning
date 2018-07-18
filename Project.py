@@ -149,7 +149,7 @@ def smote(modules_input, ratio=1):
             # p = index_rand[i][j]
             # 计算新的模块的各项特征
             new = rare_char.iloc[i]+(rare_char.iloc[p]-rare_char.iloc[i])*np.random.rand()
-            #计算原两个模块与新模块之间的欧氏距离
+            # 计算原两个模块与新模块之间的欧氏距离
             d1 = np.linalg.norm(new-rare_char.iloc[i])
             d2 = np.linalg.norm(new-rare_char.iloc[p])
             if d1 == 0 and d2 == 0:
@@ -417,14 +417,8 @@ def AAE_Judge(dataset):
         output = diff.sum()/temp.shape[0]
         subresults.append(output)
     results = np.array(subresults)
-    print('|', end='')
-    for i in range(len(dataset_values)):
-        print("{:^5.0f}".format(dataset_values[i]),'|', end='')
-    print('\n|', end='')
-    for i in range(len(dataset_values)):
-        print("{:^5.2f}".format(subresults[i]),'|', end='')
-    print('\n')
-    return results
+
+    return dataset_values, results
 
 
 def SelectCharacter(dataset):
@@ -452,33 +446,62 @@ def Top(x):
         输出：所需要的结果
     ***************************************************************
     """
-    # 进行 含smote&bagging的数据处理(默认使用决策树回归方法)
-    z0 = Deposite_smote_bagging(x, 20, 0)
-    print('Smote&Bagging')
-    fpa0 = FPA_Judge(z0)
-    aae0 = AAE_Judge(z0)
-    # 进行 含smote的数据处理
-    z1 = Deposite_bagging(x, 20, 0)
-    print('Smote')
-    fpa1 = FPA_Judge(z1)
-    aae1 = AAE_Judge(z1)
-    # 进行 含bagging的数据处理
-    print('Bagging')
-    z2 = Deposite_smote(x, 0)
-    fpa2 = FPA_Judge(z2)
-    aae2 = AAE_Judge(z2)
-    # 进行 不含smote|bagging的数据处理
-    z3 = Deposite_normal(x, 0)
-    print('Normal')
-    fpa3 = FPA_Judge(z3)
-    aae3 = AAE_Judge(z3)
-    results = (aae1-aae0)/aae1
-    print('no character selection:')
-    print('FPA improve:')
-    for i in [fpa0, fpa1, fpa2]:
-        print((i-fpa3)/i)
-    print('\n')
+    fpa0_list = []
+    fpa1_list = []
+    fpa2_list = []
+    fpa3_list = []
+    aae0_list = []
+    aae1_list = []
+    aae2_list = []
+    aae3_list = []
+    for i in range(10):
+        z0 = Deposite_smote_bagging(x, 20, 0)
+        fpa0 = FPA_Judge(z0)
+        aae0 = AAE_Judge(z0)
+        fpa0_list.append(fpa0)
+        aae0_list.append(aae0)
+        # 进行 含smote的数据处理
+        z1 = Deposite_bagging(x, 20, 0)
+        fpa1 = FPA_Judge(z1)
+        aae1 = AAE_Judge(z1)
+        fpa1_list.append(fpa1)
+        aae1_list.append(aae1)
+        # 进行 含bagging的数据处理
+        z2 = Deposite_smote(x, 0)
+        fpa2 = FPA_Judge(z2)
+        aae2 = AAE_Judge(z2)
+        fpa2_list.append(fpa2)
+        aae2_list.append(aae2)
+        # 进行 不含smote|bagging的数据处理
+        z3 = Deposite_normal(x, 0)
+        fpa3 = FPA_Judge(z3)
+        aae3 = AAE_Judge(z3)
+        fpa3_list.append(fpa3)
+        aae3_list.append(aae3)
 
+    results = []
+    for (i, j) in zip(['Smote & Bagging', 'Smote', 'Bagging', 'Normal'], [fpa0_list, fpa1_list, fpa2_list, fpa3_list]):
+        temp = np.array(j)
+        print(i, np.mean(temp))
+    dataset_values = aae0_list[0][0]
+    for i in [aae0_list, aae1_list, aae2_list, aae3_list]:
+        temp = []
+        for (p, q) in i:
+            temp.append(q)
+        subresults = 0
+        for l in temp:
+            # print(l)
+            subresults += l/len(temp)
+        results.append(subresults)
+
+    for sr in results:
+        print('|', end='')
+        for i in range(len(dataset_values)):
+            print("{:^5.0f}".format(i), '|', end='')
+        print('\n|', end='')
+        for i in range(len(dataset_values)):
+            print("{:^5.2f}".format(sr[i]), '|', end='')
+        print('\n')
 
     """
     # 进行特征筛选后的数据集
