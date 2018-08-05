@@ -437,7 +437,7 @@ def SelectCharacter(dataset):
     return pd.concat([pd.DataFrame(char_new), bug], axis=1)
 
 
-def Top(x):
+def Top(x, type):
     """
     ***************************************************************
         功能：顶层函数，综合使用以上各种函数完成所需功能
@@ -455,25 +455,25 @@ def Top(x):
     aae2_list = []
     aae3_list = []
     for i in range(10):
-        z0 = Deposite_smote_bagging(x, 20, 0)
+        z0 = Deposite_smote_bagging(x, 20, type)
         fpa0 = FPA_Judge(z0)
         aae0 = AAE_Judge(z0)
         fpa0_list.append(fpa0)
         aae0_list.append(aae0)
         # 进行 含smote的数据处理
-        z1 = Deposite_bagging(x, 20, 0)
+        z1 = Deposite_bagging(x, 20, type)
         fpa1 = FPA_Judge(z1)
         aae1 = AAE_Judge(z1)
         fpa1_list.append(fpa1)
         aae1_list.append(aae1)
         # 进行 含bagging的数据处理
-        z2 = Deposite_smote(x, 0)
+        z2 = Deposite_smote(x, type)
         fpa2 = FPA_Judge(z2)
         aae2 = AAE_Judge(z2)
         fpa2_list.append(fpa2)
         aae2_list.append(aae2)
         # 进行 不含smote|bagging的数据处理
-        z3 = Deposite_normal(x, 0)
+        z3 = Deposite_normal(x, type)
         fpa3 = FPA_Judge(z3)
         aae3 = AAE_Judge(z3)
         fpa3_list.append(fpa3)
@@ -532,6 +532,7 @@ def Top(x):
 
 
 if __name__ == "__main__":
-    for (i,j) in zip(*get_data()):
-        print(i)
-        Top(j)
+    for t in [-1, 0, 1]:
+        for (i,j) in zip(*get_data()):
+            print(i)
+            Top(j, t)
