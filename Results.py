@@ -23,5 +23,5 @@ def deposite(file):
 
 
 if __name__ == "__main__":
-    for i in ['Bayes.txt', 'DescionTree.txt', 'Linear.txt']:
+    for i in ['reg0.txt', 'reg-1.txt', 'reg1.txt']:
         deposite(i).to_csv(i+'.csv')
